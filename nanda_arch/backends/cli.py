@@ -1,7 +1,10 @@
+
 from importlib.resources import files
 from pathlib import Path
 import typer
 import secrets
+import libcst as cst
+from libcst import matchers as m
 
 
 app = typer.Typer(
@@ -96,6 +99,8 @@ def startproject():
     typer.echo("  3. Set up your environment and install dependencies.")
 
 
+# /nanda_arch/backends/cli.py
+
 @app.command()
 def startapp(
     app_name: str = typer.Argument(
@@ -133,28 +138,95 @@ def startapp(
             'config': 'config.py',
             'router': 'router.py',
             'models': 'models.py',
-            '__init__': '__init__.template'
+            '__init__': '__init__.py'
         }
 
         for template_name, file_name in files_to_create.items():
-            # Renomeei os templates de app para não terem o prefixo 'app_'
-            # Ex: 'config.template', 'router.template', etc.
             create_from_template(
                 template_name=template_name,
                 target_path=app_path / file_name,
                 context=context
             )
 
+        # --- AQUI ESTÁ A NOVIDADE ---
+        # Depois de criar os arquivos, chama a função para registrar o app
+        _add_app_to_settings(app_name, project_root)
+
     except Exception as e:
         typer.secho(f"❌ Fatal error while creating the app: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    typer.secho(f"\n✅ App '{app_name}' created successfully!", fg=typer.colors.BRIGHT_GREEN, bold=True)
-    typer.echo("Next steps:")
-    typer.secho(
-        f"  1. Add 'apps.{app_name}' to the INSTALLED_APPS list in your 'system/settings.py' file.",
-        fg=typer.colors.YELLOW
-    )
+    # Mensagem de sucesso atualizada!
+    typer.secho(f"\n✅ App '{app_name}' created and registered successfully!", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    typer.echo("You can now start adding models and routes.")
+
+
+def _add_app_to_settings(app_name: str, project_root: Path):
+    """
+    Adiciona a nova app na lista INSTALLED_APPS do settings.py de forma segura,
+    preservando toda a formatação e comentários originais usando LibCST.
+    """
+    settings_path = project_root / "system" / "settings.py"
+    # O caminho para o AppConfig, que é o padrão de registro do Nanda Arch
+    new_app_entry = f"apps.{app_name}.config"
+
+    try:
+        source_code = settings_path.read_text(encoding="utf-8")
+        tree = cst.parse_module(source_code)
+
+        class InstalledAppsTransformer(cst.CSTTransformer):
+            """
+            Um transformador que encontra a lista INSTALLED_APPS e adiciona
+            um novo elemento a ela, mantendo a formatação.
+            """
+
+            def leave_Assign(
+                self, original_node: cst.Assign, updated_node: cst.Assign
+            ) -> cst.Assign:
+                # A CORREÇÃO ESTÁ AQUI!
+                # Trocamos 'target=' por 'targets=[]' para corresponder à estrutura do LibCST.
+                # Isso procura por uma atribuição que tem exatamente um alvo, e esse alvo
+                # é um Nome com o valor 'INSTALLED_APPS'.
+                if m.matches(
+                    original_node,
+                    m.Assign(
+                        targets=[m.AssignTarget(target=m.Name("INSTALLED_APPS"))],
+                        value=m.List(),
+                    ),
+                ):
+                    # O resto da sua lógica já estava perfeito!
+                    if not isinstance(updated_node.value, cst.List):
+                        return updated_node
+
+                    new_element = cst.Element(
+                        value=cst.SimpleString(f"'{new_app_entry}'")
+                    )
+
+                    new_elements = list(updated_node.value.elements)
+                    new_elements.append(new_element)
+
+                    return updated_node.with_changes(
+                        value=updated_node.value.with_changes(elements=new_elements)
+                    )
+
+                return updated_node
+
+        transformer = InstalledAppsTransformer()
+        modified_tree = tree.visit(transformer)
+
+        # Escreve o código modificado de volta no arquivo
+        settings_path.write_text(modified_tree.code, encoding="utf-8")
+
+        typer.secho(
+            f" ✓ Adicionado '{new_app_entry}' em INSTALLED_APPS (formatação preservada).",
+            fg=typer.colors.CYAN,
+        )
+
+    except Exception as e:
+        typer.secho(f"⚠️ Não foi possível adicionar o app automaticamente em 'settings.py': {e}",
+                    fg=typer.colors.YELLOW)
+        typer.secho(f"   Por favor, adicione '{new_app_entry}' à lista INSTALLED_APPS manualmente.",
+                    fg=typer.colors.YELLOW)
 
 
 if __name__ == "__main__":

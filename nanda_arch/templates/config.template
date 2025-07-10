@@ -1,5 +1,5 @@
 from apps.{{ name }}.router import router
-from core.base import AppConfigBase
+from nanda_arch.core.base import AppConfigBase
 
 
 class AppConfig(AppConfigBase):

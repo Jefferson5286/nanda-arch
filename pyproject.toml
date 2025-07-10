@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nanda_arch"
-version = "1.0.0"
+version = "1.0.5"
 description = "An opinionated backend framework, built on FastAPI and Tortoise ORM, for rapid and structured API development."
 authors = ["Jeffers <jeffersonlima5286@gmail.com>"]
 license = "MIT"
@@ -28,6 +28,7 @@ python-jose = {extras = ["cryptography"], version = "^3.5.0"}
 passlib = "^1.7.4"
 bcrypt = "^4.3.0"
 python-decouple = "^3.8"
+libcst = "^1.8.2"
 
 
 [build-system]
