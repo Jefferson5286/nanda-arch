@@ -1,6 +1,7 @@
 from importlib.resources import files
 from pathlib import Path
 import typer
+import secrets
 
 
 app = typer.Typer(
@@ -60,7 +61,7 @@ def startproject():
 
         # --- Lógica de Criação de Arquivos Centralizada ---
         system_dir = root_path / 'system'
-        context = {'project_name': project_name}
+        context = {'project_name': project_name, 'secret_key': secrets.token_hex(32)}
 
         # Dicionário que mapeia o nome do template ao seu destino e contexto
         files_to_create = {
