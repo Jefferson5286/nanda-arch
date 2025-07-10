@@ -1,9 +1,22 @@
 [tool.poetry]
 name = "nanda_arch"
 version = "1.0.0"
-description = ""
-authors = ["jeffers <jeffersonlima5286@gmail.com>"]
+description = "An opinionated backend framework, built on FastAPI and Tortoise ORM, for rapid and structured API development."
+authors = ["Jeffers <jeffersonlima5286@gmail.com>"]
+license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/Jefferson5286/nanda-arch.git"
+repository = "https://github.com/Jefferson5286/nanda-arch.git"
+keywords = ["fastapi", "framework", "tortoise-orm", "async", "api", "rest"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: FastAPI",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 
 [tool.poetry.dependencies]
 python = "^3.13"
