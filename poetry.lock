@@ -1601,6 +1601,17 @@ anyio = ">=3.6.2,<5"
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "tomlkit"
+version = "0.13.3"
+description = "Style preserving TOML library"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "tomlkit-0.13.3-py3-none-any.whl", hash = "sha256:c89c649d79ee40629a9fda55f8ace8c6a1b42deb912b2a8fd8d942ddadb606b0"},
+    {file = "tomlkit-0.13.3.tar.gz", hash = "sha256:430cf247ee57df2b94ee3fbe588e71d362a941ebb545dec29b53961d61add2a1"},
+]
+
+[[package]]
 name = "tortoise-orm"
 version = "0.25.1"
 description = "Easy async ORM for python, built with relations in mind"
@@ -2046,4 +2057,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.13"
-content-hash = "33bee181ec853c9d1bfaf19b4230ac8cb01debb1d12f95b97fa9eba9ce3b93ef"
+content-hash = "c09c2cd10ac1029d8b6fd91ac707f7da87aef897ccd4f50cce6e0058e71456f3"

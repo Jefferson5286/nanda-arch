@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI
 from importlib import import_module
 
-from tortoise.contrib.fastapi import RegisterTortoise
+from tortoise.contrib.fastapi import register_tortoise
 
 from nanda_arch.core.base import AppConfigBase
 
@@ -61,10 +61,12 @@ class AppRegistry:
         for app_path in self._installed_apps:
             config = get_app_instance_config(app_path)
             self.fastapi_app.include_router(config.router)
-            self.tortoise_settings['apps'][config.name] = {
-                'models': config.models,
-                'default_connection': config.db_connection,
-            }
+
+            if config.models is not None:
+                self.tortoise_settings['apps'][config.name] = {
+                    'models': config.models,
+                    'default_connection': config.db_connection,
+                }
 
         logger.debug("Configurações do Tortoise-ORM finalizadas: %s", self.tortoise_settings)
 
@@ -72,7 +74,7 @@ class AppRegistry:
         """
             Registra o Tortoise ORM na instância do FastAPI com as configurações montadas.
         """
-        RegisterTortoise(
+        register_tortoise(
             self.fastapi_app,
             config=self.tortoise_settings,
         )

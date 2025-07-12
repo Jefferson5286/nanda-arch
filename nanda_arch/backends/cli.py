@@ -1,10 +1,12 @@
-
+import sys
 from importlib.resources import files
+from os.path import exists
 from pathlib import Path
 import typer
 import secrets
 import libcst as cst
 from libcst import matchers as m
+import subprocess
 
 
 app = typer.Typer(
@@ -53,7 +55,7 @@ def startproject():
     root_path = Path(path_input).expanduser().resolve()
     project_name = root_path.name
 
-    if path_input.strip() in ("", "./", "."):
+    if path_input.strip() in ('', './', '.'):
         typer.echo(f"🚀 Using current directory as project root: '{project_name}'")
     else:
         typer.echo(f"🚀 Project name will be: '{project_name}'")
@@ -80,12 +82,14 @@ def startproject():
             '__init__': (system_dir / '__init__.py', {})
         }
 
-        # Itera sobre o dicionário e cria cada arquivo
+        if not exists(root_path / 'apps'):
+            files_to_create['apps'] = (root_path / 'apps' / '__init__.py', {})
+
         for template_name, (target_path, ctx) in files_to_create.items():
             create_from_template(
                 template_name=template_name,
                 target_path=target_path,
-                context=ctx or context  # Usa o contexto específico ou o geral
+                context=ctx or context
             )
 
     except Exception as e:
@@ -99,13 +103,18 @@ def startproject():
     typer.echo("  3. Set up your environment and install dependencies.")
 
 
-# /nanda_arch/backends/cli.py
-
 @app.command()
 def startapp(
     app_name: str = typer.Argument(
         ...,
         help="The name of the application to create (e.g., 'users', 'products')."
+    ),
+    no_models: bool = typer.Option(
+        False,
+        '-nm',
+        '--no-models',
+        help='Ignora a estrutura de models',
+        is_flag=True
     )
 ):
     """
@@ -113,6 +122,7 @@ def startapp(
     """
     project_root = Path.cwd()
     settings_file = project_root / 'system' / 'settings.py'
+
     if not settings_file.is_file():
         typer.secho(
             "❌ Error: This command must be run from the root of a Nanda Arch project.",
@@ -132,14 +142,23 @@ def startapp(
     typer.echo(f"🚀 Creating app '{app_name}'...")
 
     try:
-        context = {'name': app_name}
+        context = {
+            'name': app_name,
+            'models_settings': 'None'
+        }
 
         files_to_create = {
             'config': 'config.py',
             'router': 'router.py',
-            'models': 'models.py',
             '__init__': '__init__.py'
         }
+
+        if not no_models:
+            files_to_create['models'] = 'models.py'
+            context['models_settings'] = f"['apps.{app_name}.models']"
+
+        print(files_to_create)
+        print(context)
 
         for template_name, file_name in files_to_create.items():
             create_from_template(
@@ -148,8 +167,6 @@ def startapp(
                 context=context
             )
 
-        # --- AQUI ESTÁ A NOVIDADE ---
-        # Depois de criar os arquivos, chama a função para registrar o app
         _add_app_to_settings(app_name, project_root)
 
     except Exception as e:
@@ -161,7 +178,7 @@ def startapp(
     typer.echo("You can now start adding models and routes.")
 
 
-def _add_app_to_settings(app_name: str, project_root: Path):
+def _add_app_to_settings(app_name: str,project_root: Path,):
     """
     Adiciona a nova app na lista INSTALLED_APPS do settings.py de forma segura,
     preservando toda a formatação e comentários originais usando LibCST.
@@ -183,10 +200,7 @@ def _add_app_to_settings(app_name: str, project_root: Path):
             def leave_Assign(
                 self, original_node: cst.Assign, updated_node: cst.Assign
             ) -> cst.Assign:
-                # A CORREÇÃO ESTÁ AQUI!
-                # Trocamos 'target=' por 'targets=[]' para corresponder à estrutura do LibCST.
-                # Isso procura por uma atribuição que tem exatamente um alvo, e esse alvo
-                # é um Nome com o valor 'INSTALLED_APPS'.
+
                 if m.matches(
                     original_node,
                     m.Assign(
@@ -227,6 +241,17 @@ def _add_app_to_settings(app_name: str, project_root: Path):
                     fg=typer.colors.YELLOW)
         typer.secho(f"   Por favor, adicione '{new_app_entry}' à lista INSTALLED_APPS manualmente.",
                     fg=typer.colors.YELLOW)
+
+
+@app.command(name='init-aerich')
+def init_aerich():
+    comando = [
+        sys.executable, "-m", "aerich", "init",
+        "-t", "system.core.DB_SETTINGS",
+        "--location", "./apps/.migrations"
+    ]
+
+    subprocess.run(comando, check=True)
 
 
 if __name__ == "__main__":
